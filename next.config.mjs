@@ -11,7 +11,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['heic-convert'],
+    serverComponentsExternalPackages: ['sharp'],
   },
 };
 
