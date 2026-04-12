@@ -18,8 +18,28 @@ export default function RecipeDetailClient({
   const [editOpen, setEditOpen] = useState(false);
   const [view, setView] = useState<'typed' | 'original'>('typed');
   const [imageLarge, setImageLarge] = useState(false);
+  const [rotating, setRotating] = useState(false);
 
   const category = CATEGORIES.find((c) => c.value === recipe.category);
+
+  async function handleRotate(direction: 'left' | 'right') {
+    if (!recipe.image_url || rotating) return;
+    setRotating(true);
+    try {
+      const res = await fetch('/api/rotate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipeId: recipe.id, imageUrl: recipe.image_url, direction }),
+      });
+      if (!res.ok) throw new Error('Rotate failed');
+      const { imageUrl } = await res.json();
+      setRecipe((prev) => ({ ...prev, image_url: imageUrl }));
+    } catch (e) {
+      alert('Could not rotate the image. Please try again.');
+    } finally {
+      setRotating(false);
+    }
+  }
 
   async function handleSave(updates: Partial<Recipe>) {
     const res = await fetch(`/api/recipes/${recipe.id}`, {
@@ -135,9 +155,18 @@ export default function RecipeDetailClient({
         {view === 'original' && recipe.image_url ? (
           /* Original handwritten image view */
           <div className="bg-warm-white rounded-3xl p-4 shadow-recipe border border-orange-light/50">
-            <p className="text-brown-light font-lato text-xs mb-3 text-center italic">
-              Click the image to enlarge
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-brown-light font-lato text-xs italic">Click the image to enlarge</p>
+              <div className="flex items-center gap-2">
+                <span className="text-brown-light font-lato text-xs">Rotate:</span>
+                <button onClick={() => handleRotate('left')} disabled={rotating} className="bg-sage-muted hover:bg-sage text-sage hover:text-white border border-sage-light font-lato text-xs font-semibold px-3 py-1.5 rounded-full transition-all disabled:opacity-50">
+                  {rotating ? '…' : '↺ Left'}
+                </button>
+                <button onClick={() => handleRotate('right')} disabled={rotating} className="bg-sage-muted hover:bg-sage text-sage hover:text-white border border-sage-light font-lato text-xs font-semibold px-3 py-1.5 rounded-full transition-all disabled:opacity-50">
+                  {rotating ? '…' : 'Right ↻'}
+                </button>
+              </div>
+            </div>
             <div
               className="relative rounded-2xl overflow-hidden cursor-zoom-in"
               style={{ maxHeight: '70vh' }}
