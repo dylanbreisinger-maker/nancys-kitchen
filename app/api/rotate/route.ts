@@ -14,14 +14,26 @@ export async function POST(req: NextRequest) {
 
     const imageBuffer = Buffer.from(await imageRes.arrayBuffer());
     const degrees = direction === 'left' ? 270 : 90;
-    const rotatedBuffer = await sharp(imageBuffer).rotate(degrees).jpeg({ quality: 90 }).toBuffer();
+
+    const normalized = await sharp(imageBuffer)
+      .rotate()
+      .jpeg({ quality: 95 })
+      .toBuffer();
+
+    const rotatedBuffer = await sharp(normalized)
+      .rotate(degrees)
+      .jpeg({ quality: 90 })
+      .toBuffer();
 
     const urlParts = imageUrl.split('/recipe-images/');
     if (urlParts.length < 2) return NextResponse.json({ error: 'Bad image URL' }, { status: 400 });
     const filePath = urlParts[1].split('?')[0];
 
     const supabase = createServerSupabase();
-    const { error: uploadError } = await supabase.storage.from('recipe-images').update(filePath, rotatedBuffer, { contentType: 'image/jpeg', upsert: true });
+    const { error: uploadError } = await supabase.storage
+      .from('recipe-images')
+      .update(filePath, rotatedBuffer, { contentType: 'image/jpeg', upsert: true });
+
     if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 });
 
     const newUrl = `${imageUrl.split('?')[0]}?t=${Date.now()}`;
